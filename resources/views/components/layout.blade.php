@@ -14,7 +14,7 @@
         <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
             <a href="{{ auth()->check() ? route('dashboard') : route('login') }}" class="flex items-center gap-2 font-mono text-sm font-semibold">
                 <span class="text-emerald-400">$</span>
-                <span>devops-dojo</span>
+                <span>{{ config('app.name') }}</span>
             </a>
 
             @auth
