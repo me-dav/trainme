@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AiImportController;
 use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\AttemptController;
 use App\Http\Controllers\Auth\LoginController;
@@ -24,9 +25,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/boards/{board:slug}', [BoardController::class, 'destroy'])->name('boards.destroy');
     Route::get('/boards/{board:slug}/template', [BoardController::class, 'template'])->name('boards.template');
     Route::post('/boards/{board:slug}/import', [ImportController::class, 'store'])->name('import.store');
+    Route::post('/boards/{board:slug}/import-ai', [AiImportController::class, 'store'])->name('ai-imports.store');
 
     Route::get('/import/{token}', [ImportController::class, 'show'])->whereUuid('token')->name('import.show');
     Route::post('/import/{token}', [ImportController::class, 'confirm'])->whereUuid('token')->name('import.confirm');
+    Route::get('/ai-imports/{aiImport}', [AiImportController::class, 'show'])->whereUuid('aiImport')->name('ai-imports.show');
 
     Route::get('/modules/{module}', [ModuleController::class, 'show'])->name('modules.show');
     Route::get('/modules/{module}/bank', [ModuleController::class, 'bank'])->name('modules.bank');

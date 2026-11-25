@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Services\Content\ModuleImporter;
+use App\Services\Content\PendingImports;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -17,9 +16,10 @@ use Illuminate\View\View;
  */
 class ImportController extends Controller
 {
-    private const PENDING_DIR = 'imports';
-
-    public function __construct(private ModuleImporter $importer) {}
+    public function __construct(
+        private ModuleImporter $importer,
+        private PendingImports $pending,
+    ) {}
 
     public function store(Request $request, Course $board): RedirectResponse
     {
@@ -46,18 +46,12 @@ class ImportController extends Controller
                 ->with('importWarnings', $analysis->report->warnings);
         }
 
-        $this->pruneStalePending();
-
-        $token = (string) Str::uuid();
-        Storage::disk('local')->put($this->pendingPath($token), $raw);
-        $request->session()->put($this->sessionKey($token), $board->id);
-
-        return redirect()->route('import.show', $token);
+        return redirect()->route('import.show', $this->pending->put($request, $board, $raw));
     }
 
     public function show(Request $request, string $token): View|RedirectResponse
     {
-        [$raw, $board] = $this->pending($request, $token);
+        [$raw, $board] = $this->pending->get($request, $token);
 
         if ($raw === null) {
             return $this->expired();
@@ -72,7 +66,7 @@ class ImportController extends Controller
 
     public function confirm(Request $request, string $token): RedirectResponse
     {
-        [$raw, $board] = $this->pending($request, $token);
+        [$raw, $board] = $this->pending->get($request, $token);
 
         if ($raw === null) {
             return $this->expired();
@@ -84,48 +78,13 @@ class ImportController extends Controller
 
         $module = $this->importer->import($raw, $board);
 
-        Storage::disk('local')->delete($this->pendingPath($token));
-        $request->session()->forget($this->sessionKey($token));
+        $this->pending->forget($request, $token);
 
         return redirect()->route('modules.show', $module)->with('status', "Modul \"{$module->title}\" v{$module->version} berhasil diimpor ke board {$board->title}.");
-    }
-
-    /**
-     * @return array{0: string|null, 1: Course|null}
-     */
-    private function pending(Request $request, string $token): array
-    {
-        $boardId = $request->session()->get($this->sessionKey($token));
-        $board = $boardId === null ? null : Course::query()->find($boardId);
-        $raw = $board === null ? null : Storage::disk('local')->get($this->pendingPath($token));
-
-        return [$raw, $board];
     }
 
     private function expired(): RedirectResponse
     {
         return redirect()->route('dashboard')->with('error', 'Sesi impor tidak ditemukan atau sudah kedaluwarsa. Unggah ulang file-nya dari board.');
-    }
-
-    private function pendingPath(string $token): string
-    {
-        return self::PENDING_DIR.'/'.$token.'.md';
-    }
-
-    private function sessionKey(string $token): string
-    {
-        return 'pending_imports.'.$token;
-    }
-
-    private function pruneStalePending(): void
-    {
-        $disk = Storage::disk('local');
-        $cutoff = now()->subDay()->getTimestamp();
-
-        foreach ($disk->files(self::PENDING_DIR) as $file) {
-            if ($disk->lastModified($file) < $cutoff) {
-                $disk->delete($file);
-            }
-        }
     }
 }

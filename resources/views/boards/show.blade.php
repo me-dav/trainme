@@ -3,6 +3,7 @@
         $importErrors = session('importErrors');
         $importWarnings = session('importWarnings', []);
         $openImport = $importErrors !== null || $errors->import->any();
+        $openAiImport = $errors->aiImport->any();
     @endphp
 
     <nav class="mb-4 text-sm text-zinc-500">
@@ -21,6 +22,9 @@
         </div>
         <div class="flex gap-2">
             <button type="button" class="btn btn-ghost" data-dialog-open="board-edit">Edit board</button>
+            @if ($aiEnabled)
+                <button type="button" class="btn btn-ghost" data-dialog-open="import-ai">✦ Impor dari PDF/Word</button>
+            @endif
             <button type="button" class="btn btn-primary" data-dialog-open="import-module">+ Impor modul</button>
         </div>
     </div>
@@ -29,7 +33,12 @@
         <div class="card p-10 text-center">
             <p class="font-mono text-emerald-400">$ ls ~/{{ $board->slug }}/</p>
             <p class="mt-2 text-zinc-400">Board ini belum punya modul. Unduh template, buat modul dengan AI, lalu unggah di sini.</p>
-            <button type="button" class="btn btn-primary mt-6" data-dialog-open="import-module">+ Impor modul</button>
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+                @if ($aiEnabled)
+                    <button type="button" class="btn btn-ghost" data-dialog-open="import-ai">✦ Impor dari PDF/Word</button>
+                @endif
+                <button type="button" class="btn btn-primary" data-dialog-open="import-module">+ Impor modul</button>
+            </div>
         </div>
     @else
         <div class="grid gap-4 md:grid-cols-2">
@@ -167,6 +176,38 @@
             </li>
         </ol>
     </x-modal>
+
+    @if ($aiEnabled)
+        {{-- Import with AI: PDF/Word → module file, generated in the background --}}
+        <x-modal id="import-ai" title="Impor dari PDF/Word ke {{ $board->title }}" :open="$openAiImport" :wide="true">
+            <p class="text-sm text-zinc-400">
+                Unggah materi yang sudah ada (PDF, termasuk hasil scan, atau Word). AI akan menyusunnya menjadi satu modul lengkap
+                dengan soal tier A, B, dan C, lalu memeriksanya dengan validator yang sama seperti unggahan manual.
+            </p>
+            <form method="POST" action="{{ route('ai-imports.store', $board) }}" enctype="multipart/form-data" class="mt-4 space-y-4">
+                @csrf
+                <div>
+                    <label for="ai-document" class="sr-only">Dokumen (PDF atau Word)</label>
+                    <input id="ai-document" name="document" type="file" accept=".pdf,.docx" required
+                           class="block w-full text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-zinc-800 file:px-4 file:py-2 file:text-zinc-200 hover:file:bg-zinc-700">
+                    <p class="mt-1 text-xs text-zinc-500">
+                        PDF atau .docx, maksimal {{ intdiv((int) config('services.llm.max_upload_kb'), 1024) }} MB. Satu file = satu modul; untuk buku, potong per bab.
+                    </p>
+                    @error('document', 'aiImport')
+                        <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+                <p class="text-xs text-zinc-500">
+                    Proses berjalan di latar belakang, biasanya beberapa menit. Hasilnya masuk ke pratinjau dulu dan disimpan sebagai
+                    <span class="text-amber-300">draft</span>; cek isinya sebelum menandai terverifikasi.
+                </p>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="btn btn-ghost" data-dialog-close>Batal</button>
+                    <button type="submit" class="btn btn-primary">Proses dengan AI</button>
+                </div>
+            </form>
+        </x-modal>
+    @endif
 
     <x-modal id="board-edit" title="Edit board" :open="$errors->boardEdit->any()">
         <form method="POST" action="{{ route('boards.update', $board) }}" class="space-y-4">

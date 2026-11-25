@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Services\Ai\ChatClient;
 use App\Services\Quiz\QuizService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class BoardController extends Controller
         return redirect()->route('boards.show', $board)->with('status', "Board \"{$board->title}\" dibuat. Sekarang impor modul pertamanya.");
     }
 
-    public function show(Request $request, Course $board, QuizService $quiz): View
+    public function show(Request $request, Course $board, QuizService $quiz, ChatClient $ai): View
     {
         $board->load('modules');
         $user = $request->user();
@@ -55,6 +56,7 @@ class BoardController extends Controller
         return view('boards.show', [
             'board' => $board,
             'statuses' => $board->modules->mapWithKeys(fn ($module): array => [$module->id => $quiz->tierStatuses($module, $user)])->all(),
+            'aiEnabled' => $ai->isConfigured(),
             'activeModuleIds' => $board->modules->filter(fn ($module): bool => $quiz->activeAttempt($module, $user) !== null)->pluck('id')->all(),
         ]);
     }

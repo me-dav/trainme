@@ -8,6 +8,7 @@
     <title>{{ $title ? $title.' · ' : '' }}{{ config('app.name') }}</title>
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('head')
 </head>
 <body class="min-h-screen">
     <header class="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
