@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AiImport;
 use App\Models\Course;
 use App\Services\Ai\ChatClient;
 use App\Services\Quiz\QuizService;
@@ -9,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -86,15 +88,27 @@ class BoardController extends Controller
     /**
      * Only empty boards can be deleted, so no module or test history disappears by accident.
      */
-    public function destroy(Course $board): RedirectResponse
+    /**
+     * Deletes the board with everything in it: modules, their questions and test history, and AI imports
+     * (the database cascades). A board with modules must be confirmed by typing its slug.
+     */
+    public function destroy(Request $request, Course $board): RedirectResponse
     {
-        if ($board->modules()->exists()) {
-            return redirect()->route('boards.show', $board)->with('error', 'Board masih berisi modul. Hanya board kosong yang bisa dihapus.');
+        $moduleCount = $board->modules()->count();
+
+        if ($moduleCount > 0 && $request->input('confirm') !== $board->slug) {
+            return redirect()->route('boards.show', $board)
+                ->withErrors(['confirm' => "Ketik `{$board->slug}` untuk mengonfirmasi penghapusan."], 'boardDelete');
         }
 
-        $board->delete();
+        $documents = AiImport::query()->where('course_id', $board->id)->pluck('source_path')->all();
 
-        return redirect()->route('dashboard')->with('status', "Board \"{$board->title}\" dihapus.");
+        $board->delete();
+        Storage::disk('local')->delete($documents);
+
+        return redirect()->route('dashboard')->with('status', $moduleCount > 0
+            ? "Board \"{$board->title}\" beserta {$moduleCount} modul dihapus."
+            : "Board \"{$board->title}\" dihapus.");
     }
 
     /**

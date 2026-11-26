@@ -150,6 +150,50 @@ class QuizFlowTest extends TestCase
         $this->get(route('attempts.show', $attempt))->assertOk()->assertSee('Belum tepat')->assertSee('Sumber:');
     }
 
+    public function test_command_answers_are_typed_into_a_terminal_and_echoed_back(): void
+    {
+        $this->user->update(['name' => 'Clive Ibrahim']);
+        // Leave only the command question in tier A, so the attempt starts with it.
+        $this->module->questions()->where('key', 'a02')->delete();
+        $attempt = $this->startAttempt(Tier::A);
+
+        $this->get(route('attempts.show', $attempt))
+            ->assertOk()
+            ->assertSee('class="term"', false)
+            ->assertSee('clive@trainme:~$')
+            ->assertSee('clive@trainme: ~')
+            ->assertSee('Enter untuk kirim')
+            ->assertSee('class="term-field"', false);
+
+        $this->post(route('attempts.answer', $attempt), ['answer' => 'chmod u+x deploy.sh']);
+
+        $this->get(route('attempts.show', $attempt))
+            ->assertOk()
+            ->assertSee('<span class="term-output">chmod u+x deploy.sh</span>', false)
+            ->assertSee('✓ Benar');
+    }
+
+    public function test_scenario_answers_get_a_multi_line_terminal_with_a_prompt_per_line(): void
+    {
+        $this->finish($this->startAttempt(Tier::A));
+        $this->finish($this->startAttempt(Tier::B));
+        $attempt = $this->startAttempt(Tier::C);
+
+        $this->get(route('attempts.show', $attempt))
+            ->assertOk()
+            ->assertSee('data-terminal-gutter', false)
+            ->assertSee('data-terminal-lines', false)
+            ->assertSee('Ctrl+Enter untuk kirim');
+
+        $this->post(route('attempts.answer', $attempt), ['answer' => self::CORRECT['c01']]);
+
+        $this->get(route('attempts.show', $attempt))
+            ->assertOk()
+            ->assertSee('<span class="term-output">namei -l /srv/app/storage</span>', false)
+            ->assertSee('<span class="term-output">chgrp -R www-data /srv/app/storage</span>', false)
+            ->assertSee('✓ Benar');
+    }
+
     public function test_next_does_nothing_until_the_question_is_answered(): void
     {
         $attempt = $this->startAttempt(Tier::A);

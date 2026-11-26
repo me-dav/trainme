@@ -2,10 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiImport;
+use App\Models\Attempt;
 use App\Models\Course;
 use App\Models\Module;
+use App\Models\Question;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class BoardTest extends TestCase
@@ -60,17 +64,54 @@ class BoardTest extends TestCase
         $this->assertSame('linux', $board->fresh()->slug);
     }
 
-    public function test_only_empty_boards_can_be_deleted(): void
+    public function test_an_empty_board_is_deleted_without_typing_its_slug(): void
     {
-        $full = Course::factory()->create();
-        Module::factory()->create(['course_id' => $full->id]);
         $empty = Course::factory()->create();
 
-        $this->actingAs($this->user)->delete(route('boards.destroy', $full))->assertSessionHas('error');
-        $this->delete(route('boards.destroy', $empty))->assertRedirect(route('dashboard'));
+        $this->actingAs($this->user)->delete(route('boards.destroy', $empty))->assertRedirect(route('dashboard'));
 
-        $this->assertModelExists($full);
         $this->assertModelMissing($empty);
+    }
+
+    public function test_a_board_with_modules_is_deleted_only_after_typing_its_slug(): void
+    {
+        $board = Course::factory()->create(['slug' => 'linux', 'title' => 'Linux']);
+        Module::factory()->create(['course_id' => $board->id]);
+
+        $this->actingAs($this->user)
+            ->followingRedirects()
+            ->delete(route('boards.destroy', $board), ['confirm' => 'Linux'])
+            ->assertOk()
+            ->assertSee('Ketik `linux` untuk mengonfirmasi penghapusan.')
+            ->assertSee('<dialog id="board-edit" aria-labelledby="board-edit-title"  data-open-on-load', false);
+
+        $this->assertModelExists($board);
+        $this->assertSame(1, $board->modules()->count());
+    }
+
+    public function test_deleting_a_board_deletes_its_modules_questions_history_and_ai_imports(): void
+    {
+        Storage::fake('local');
+        $board = Course::factory()->create(['slug' => 'linux', 'title' => 'Linux']);
+        $modules = Module::factory()->count(2)->create(['course_id' => $board->id]);
+        $question = Question::factory()->create(['module_id' => $modules[0]->id]);
+        $attempt = Attempt::factory()->completed(80)->create(['module_id' => $modules[0]->id, 'user_id' => $this->user->id]);
+        $aiImport = AiImport::factory()->for($this->user)->for($board, 'course')->create();
+        Storage::disk('local')->put($aiImport->source_path, '%PDF-1.4');
+        $otherModule = Module::factory()->create();
+
+        $this->actingAs($this->user)
+            ->delete(route('boards.destroy', $board), ['confirm' => 'linux'])
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('status', 'Board "Linux" beserta 2 modul dihapus.');
+
+        $this->assertModelMissing($board);
+        $modules->each(fn (Module $module) => $this->assertModelMissing($module));
+        $this->assertDatabaseMissing('questions', ['id' => $question->id]);
+        $this->assertModelMissing($attempt);
+        $this->assertModelMissing($aiImport);
+        Storage::disk('local')->assertMissing($aiImport->source_path);
+        $this->assertModelExists($otherModule);
     }
 
     public function test_cli_import_does_not_overwrite_a_renamed_board(): void

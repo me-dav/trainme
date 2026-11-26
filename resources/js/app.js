@@ -26,8 +26,31 @@ function highlightCode(root) {
     });
 }
 
+function currentTheme() {
+    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+function mermaidConfig(theme) {
+    const light = theme === 'light';
+
+    return {
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: light ? 'base' : 'dark',
+        themeVariables: {
+            fontFamily: 'Instrument Sans, ui-sans-serif, system-ui, sans-serif',
+            primaryColor: light ? '#f1ecfe' : '#18181b',
+            primaryTextColor: light ? '#2e2a3d' : '#e4e4e7',
+            primaryBorderColor: light ? '#8b5cf6' : '#10b981',
+            lineColor: light ? '#9a94aa' : '#71717a',
+            background: light ? '#fcfbfe' : '#18181b',
+        },
+    };
+}
+
 /**
- * Turns ```mermaid fences into diagrams. Mermaid is loaded only on pages that need it.
+ * Turns ```mermaid fences into diagrams. Mermaid is loaded only on pages that need it. The source stays
+ * on the container, so the diagrams can be drawn again in the other theme's colours.
  */
 async function renderMermaid(root) {
     const blocks = [...root.querySelectorAll('pre code.language-mermaid')];
@@ -38,21 +61,12 @@ async function renderMermaid(root) {
 
     const { default: mermaid } = await import('mermaid');
 
-    mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-        theme: 'dark',
-        themeVariables: {
-            fontFamily: 'Instrument Sans, ui-sans-serif, system-ui, sans-serif',
-            primaryColor: '#18181b',
-            primaryBorderColor: '#10b981',
-            lineColor: '#71717a',
-        },
-    });
+    mermaid.initialize(mermaidConfig(currentTheme()));
 
     const nodes = blocks.map((block) => {
         const container = document.createElement('div');
         container.className = 'mermaid-diagram';
+        container.dataset.source = block.textContent;
         container.textContent = block.textContent;
         block.parentElement.replaceWith(container);
 
@@ -60,6 +74,62 @@ async function renderMermaid(root) {
     });
 
     await mermaid.run({ nodes });
+}
+
+async function redrawMermaid() {
+    const nodes = [...document.querySelectorAll('.mermaid-diagram[data-source]')];
+
+    if (nodes.length === 0) {
+        return;
+    }
+
+    const { default: mermaid } = await import('mermaid');
+
+    mermaid.initialize(mermaidConfig(currentTheme()));
+    nodes.forEach((node) => {
+        node.removeAttribute('data-processed');
+        node.textContent = node.dataset.source;
+    });
+
+    await mermaid.run({ nodes });
+}
+
+/**
+ * Light/dark theme. Without a saved choice the device setting decides (and is followed when it changes).
+ * Choosing the theme the device already uses forgets the choice, so the page follows the device again.
+ */
+function bindThemeToggle(root) {
+    const media = window.matchMedia('(prefers-color-scheme: light)');
+    const systemTheme = () => (media.matches ? 'light' : 'dark');
+
+    const apply = (theme) => {
+        if (theme === currentTheme()) {
+            return;
+        }
+
+        document.documentElement.dataset.theme = theme;
+        redrawMermaid();
+    };
+
+    root.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const next = currentTheme() === 'light' ? 'dark' : 'light';
+
+            if (next === systemTheme()) {
+                localStorage.removeItem('theme');
+            } else {
+                localStorage.setItem('theme', next);
+            }
+
+            apply(next);
+        });
+    });
+
+    media.addEventListener('change', () => {
+        if (localStorage.getItem('theme') === null) {
+            apply(systemTheme());
+        }
+    });
 }
 
 /**
@@ -73,6 +143,31 @@ function bindAnswerShortcuts(root) {
                 textarea.form?.requestSubmit();
             }
         });
+    });
+}
+
+/**
+ * Multi-line terminal input: one `$` in the gutter per line of the answer, scrolled with the text.
+ */
+function bindTerminalGutters(root) {
+    root.querySelectorAll('textarea[data-terminal-lines]').forEach((textarea) => {
+        const gutter = textarea.closest('.term-multiline')?.querySelector('[data-terminal-gutter]');
+
+        if (!gutter) {
+            return;
+        }
+
+        const update = () => {
+            const lines = Math.max(1, textarea.value.split('\n').length);
+            gutter.textContent = Array(lines).fill('$').join('\n');
+            gutter.scrollTop = textarea.scrollTop;
+        };
+
+        textarea.addEventListener('input', update);
+        textarea.addEventListener('scroll', () => {
+            gutter.scrollTop = textarea.scrollTop;
+        });
+        update();
     });
 }
 
@@ -161,7 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
     highlightCode(document);
     renderMermaid(document);
     bindAnswerShortcuts(document);
+    bindTerminalGutters(document);
     bindDialogs(document);
     bindCopyButtons(document);
     bindConfirmations(document);
+    bindThemeToggle(document);
 });

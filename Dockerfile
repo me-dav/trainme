@@ -24,7 +24,7 @@ RUN apk add --no-cache postgresql-dev libzip-dev icu-dev libpng-dev libjpeg-turb
       && docker-php-ext-install pdo_pgsql zip intl gd bcmath opcache
 
 # Install ekstensi Redis via PECL
-RUN { echo "upload_max_filesize=8M"; echo "post_max_size=10M"; echo "memory_limit=256M"; \
+RUN { echo "upload_max_filesize=21M"; echo "post_max_size=22M"; echo "memory_limit=256M"; \
       echo "opcache.enable=1"; echo "opcache.validate_timestamps=0"; } > /usr/local/etc/php/conf.d/app.ini
 
 WORKDIR /var/www/html

@@ -18,8 +18,8 @@
         <div class="card mt-6 p-6" role="status" aria-live="polite">
             <div class="flex items-center gap-3">
                 <span class="relative flex h-3 w-3" aria-hidden="true">
-                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-400 opacity-75"></span>
+                    <span class="relative inline-flex h-3 w-3 rounded-full bg-accent-500"></span>
                 </span>
                 <p class="font-semibold">
                     @if ($status === \App\Enums\AiImportStatus::Pending)

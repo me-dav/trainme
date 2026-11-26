@@ -1,7 +1,7 @@
 <x-layout title="Masuk">
     <div class="mx-auto mt-12 max-w-sm">
         <div class="mb-8 text-center">
-            <p class="font-mono text-sm text-emerald-400"><span class="inline-block rotate-270">꩜</span> ssh trainme@bydav</p>
+            <p class="font-mono text-sm text-accent-400"><span class="inline-block rotate-270">꩜</span> ssh trainme@bydav</p>
             <h1 class="mt-2 text-2xl font-semibold">Masuk ke trainme</h1>
             <p class="mt-1 text-sm text-zinc-400">Your topics, your modules, your way to learn. Belajar dengan praktik, bukan sekadar teori.</p>
         </div>
@@ -20,7 +20,7 @@
             </div>
 
             <label class="flex items-center gap-2 text-sm text-zinc-400">
-                <input type="checkbox" name="remember" value="1" class="rounded border-zinc-700 bg-zinc-950 text-emerald-500">
+                <input type="checkbox" name="remember" value="1" class="rounded border-zinc-700 bg-zinc-950 text-accent-500">
                 Ingat saya
             </label>
 

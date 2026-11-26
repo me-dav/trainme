@@ -40,7 +40,7 @@
                     <ul class="space-y-1.5 text-sm">
                         @foreach ($module->sources as $source)
                             <li>
-                                <a href="{{ $source['url'] }}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline">{{ $source['title'] }}</a>
+                                <a href="{{ $source['url'] }}" target="_blank" rel="noopener noreferrer" class="text-accent-400 hover:underline">{{ $source['title'] }}</a>
                             </li>
                         @endforeach
                     </ul>
@@ -102,7 +102,7 @@
                     <h2 class="mb-2 text-sm font-semibold">Isi materi</h2>
                     <ol class="space-y-1 text-sm">
                         @foreach ($document['toc'] as $entry)
-                            <li><a href="#{{ $entry['id'] }}" class="text-zinc-400 hover:text-emerald-300">{{ $entry['title'] }}</a></li>
+                            <li><a href="#{{ $entry['id'] }}" class="text-zinc-400 hover:text-accent-300">{{ $entry['title'] }}</a></li>
                         @endforeach
                     </ol>
                 </section>
@@ -129,6 +129,24 @@
                     </ul>
                 </section>
             @endif
+
+            <button type="button" class="text-left text-xs text-zinc-500 hover:text-red-400" data-dialog-open="module-delete">Hapus modul ini…</button>
         </aside>
     </div>
+
+    <x-modal id="module-delete" title="Hapus modul">
+        <form method="POST" action="{{ route('modules.destroy', $module) }}" class="space-y-4">
+            @csrf
+            @method('DELETE')
+            <p class="text-sm text-zinc-300">
+                Modul <strong>{{ $module->title }}</strong> akan dihapus permanen dari board {{ $module->course->title }},
+                beserta {{ $module->questions()->count() }} soal{{ $attemptCount > 0 ? " dan {$attemptCount} riwayat tes" : "" }}.
+                Tindakan ini tidak bisa dibatalkan.
+            </p>
+            <div class="flex justify-end gap-2">
+                <button type="button" class="btn btn-ghost" data-dialog-close>Batal</button>
+                <button type="submit" class="btn btn-danger">Hapus modul</button>
+            </div>
+        </form>
+    </x-modal>
 </x-layout>

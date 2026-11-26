@@ -23,6 +23,23 @@ services:
     networks: [internal]
     mem_limit: 384m
  
+  # Queue worker: runs the background jobs (PDF/Word -> module with AI). Same image as `app`;
+  # the entrypoint caches config first, then runs the command below. It needs the same storage
+  # volume, because the document is uploaded through `app` and read here.
+  worker:
+    image: ghcr.io/<OWNER>/<PROJECT>-app:${TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RUN_MIGRATIONS: "false"
+    command: ["php", "-d", "memory_limit=512M", "artisan", "queue:work", "--tries=1", "--sleep=3", "--max-time=3600"]
+    stop_grace_period: 60s
+    depends_on:
+      db: { condition: service_healthy }
+    volumes: [storage:/var/www/html/storage/app]
+    networks: [internal]
+    mem_limit: 768m
+
   nginx:
     image: ghcr.io/<OWNER>/<PROJECT>-nginx:${TAG:-latest}
     restart: unless-stopped

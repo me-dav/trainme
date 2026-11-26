@@ -8,11 +8,64 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    /*
+     * Brand accent (buttons, links, focus, progress). Emerald in the dark theme, violet in the light one.
+     * Green for "correct / passed" stays `emerald-*` in both themes.
+     */
+    --color-accent-200: var(--color-emerald-200);
+    --color-accent-300: var(--color-emerald-300);
+    --color-accent-400: var(--color-emerald-400);
+    --color-accent-500: var(--color-emerald-500);
+    --color-accent-600: var(--color-emerald-600);
 }
 
 @layer base {
-    html {
+    /*
+     * Themes. The dark theme uses Tailwind's palette as is. The light theme (html[data-theme="light"], set by the
+     * script in the layout) redefines the palette instead of every class: the zinc scale is mirrored to dimmed,
+     * violet-tinted light greys (zinc-950 = page, zinc-900 = cards, zinc-200 = body text). The page is a very
+     * light grey rather than white, so it does not glare; only the module material (.panel) is pure white. The
+     * light text shades of the status colours (200–400) get the darker shades so they stay readable.
+     */
+    :root {
         color-scheme: dark;
+        --glow: rgb(16 185 129 / 0.14);
+    }
+
+    :root[data-theme='light'] {
+        color-scheme: light;
+        --glow: rgb(139 92 246 / 0.12);
+
+        --color-zinc-50: #17151f;
+        --color-zinc-100: #211e2c;
+        --color-zinc-200: #2e2a3c;
+        --color-zinc-300: #403b51;
+        --color-zinc-400: #554f66;
+        --color-zinc-500: #6b657c;
+        --color-zinc-600: #948ea2;
+        --color-zinc-700: #c6c2cf;
+        --color-zinc-800: #dedbe4;
+        --color-zinc-900: #f7f6f9;
+        --color-zinc-950: #eceaf0;
+        --color-black: #e2dfe8;
+
+        --color-accent-200: oklch(43.2% 0.232 292.759);
+        --color-accent-300: oklch(54.1% 0.281 293.009);
+        --color-accent-400: oklch(49.1% 0.27 292.581);
+        --color-accent-500: oklch(54.1% 0.281 293.009);
+        --color-accent-600: oklch(49.1% 0.27 292.581);
+
+        --color-emerald-200: oklch(43.2% 0.095 166.913);
+        --color-emerald-300: oklch(50.8% 0.118 165.612);
+        --color-emerald-400: oklch(59.6% 0.145 163.225);
+        --color-red-200: oklch(44.4% 0.177 26.899);
+        --color-red-300: oklch(50.5% 0.213 27.518);
+        --color-red-400: oklch(57.7% 0.245 27.325);
+        --color-amber-200: oklch(47.3% 0.137 46.201);
+        --color-amber-300: oklch(55.5% 0.163 48.998);
+        --color-sky-300: oklch(50% 0.134 242.749);
+        --color-violet-300: oklch(49.1% 0.27 292.581);
     }
 
     body {
@@ -29,6 +82,10 @@
         --grid-fade: 0.7;
     }
 
+    :root[data-theme='light'] {
+        --grid-line: rgb(76 29 149 / 0.07);
+    }
+
     body::before {
         content: '';
         position: fixed;
@@ -36,7 +93,7 @@
         z-index: -1;
         pointer-events: none;
         background-image:
-            radial-gradient(ellipse 80% 50% at 50% -10%, rgb(16 185 129 / 0.14), transparent 70%),
+            radial-gradient(ellipse 80% 50% at 50% -10%, var(--glow), transparent 70%),
             linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
             linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
         background-size:
@@ -45,6 +102,12 @@
             var(--grid-size) var(--grid-size);
         background-position: center top;
         mask-image: linear-gradient(to bottom, black 0%, black 50%, rgb(0 0 0 / var(--grid-fade)) 100%);
+    }
+
+    /* Theme toggle: show the icon of the theme you would switch to. */
+    :root[data-theme='light'] .theme-icon-sun,
+    :root:not([data-theme='light']) .theme-icon-moon {
+        display: none;
     }
 }
 
@@ -68,21 +131,254 @@
     }
 
     .step-number {
-        @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 font-mono text-xs
-            font-semibold text-emerald-300;
+        @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-500/15 font-mono text-xs
+            font-semibold text-accent-300;
     }
 
     .btn {
         @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition
-            focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-50;
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/60 disabled:cursor-not-allowed disabled:opacity-50;
     }
 
     .btn-primary {
-        @apply bg-emerald-500 text-zinc-950 hover:bg-emerald-400;
+        @apply bg-accent-500 text-zinc-950 hover:bg-accent-400;
     }
 
     .btn-ghost {
         @apply bg-zinc-800 border border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800;
+    }
+
+    .btn-danger {
+        @apply bg-red-600 text-white hover:bg-red-500;
+    }
+
+    /*
+     * AI import button: on hover (or keyboard focus) a white / light blue ring spins around the button, with a
+     * soft glow behind it. Both are pseudo-elements under the label; `isolation` keeps them inside the button's
+     * stacking. The light theme uses light violet instead, because white barely shows on a light page.
+     */
+    :root {
+        --ai-glow-white: rgb(255 255 255);
+        --ai-glow-blue: rgb(224 242 254);
+    }
+
+    :root[data-theme='light'] {
+        --ai-glow-white: rgb(221 214 254);
+        --ai-glow-blue: rgb(167 139 250);
+    }
+
+    .btn-ai {
+        @apply relative isolate;
+    }
+
+    .btn-ai::before,
+    .btn-ai::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        z-index: -1;
+        border-radius: inherit;
+        background: conic-gradient(
+            from var(--ai-angle),
+            transparent 0deg,
+            var(--ai-glow-blue) 70deg,
+            var(--ai-glow-white) 130deg,
+            var(--ai-glow-blue) 190deg,
+            transparent 250deg,
+            transparent 360deg
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+
+    /* The ring: only a 1px band around the button is visible. */
+    .btn-ai::before {
+        padding: 1px;
+        -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+            linear-gradient(#000 0 0) content-box exclude,
+            linear-gradient(#000 0 0);
+    }
+
+    /* The glow: the same gradient, blurred. */
+    .btn-ai::after {
+        filter: blur(6px);
+    }
+
+    .btn-ai:hover::before,
+    .btn-ai:hover::after,
+    .btn-ai:focus-visible::before,
+    .btn-ai:focus-visible::after {
+        opacity: 1;
+        animation: ai-spin 2.4s linear infinite;
+    }
+
+    .btn-ai:hover::after,
+    .btn-ai:focus-visible::after {
+        opacity: 0.4;
+    }
+
+    /*
+     * Terminal window for quiz answers (<x-terminal>). Fixed colours, not the theme palette: it stays a dark
+     * terminal in the light theme too. Only the prompt colour follows the theme's accent.
+     */
+    :root {
+        --term-bg: #0b0a0f;
+        --term-bar: #16141d;
+        --term-border: #2a2733;
+        --term-text: #e4e4e7;
+        --term-muted: #8b8698;
+        --term-placeholder: #5c5868;
+        --term-prompt: #34d399;
+    }
+
+    :root[data-theme='light'] {
+        --term-prompt: #c4b5fd;
+    }
+
+    .term {
+        overflow: hidden;
+        border: 1px solid var(--term-border);
+        border-radius: 0.75rem;
+        background: var(--term-bg);
+        color: var(--term-text);
+        font-family: var(--font-mono);
+        font-size: 14px;
+        box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.45);
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
+    }
+
+    .term:focus-within {
+        border-color: color-mix(in oklab, var(--term-prompt) 55%, transparent);
+        box-shadow:
+            0 0 0 3px color-mix(in oklab, var(--term-prompt) 18%, transparent),
+            0 10px 30px -12px rgb(0 0 0 / 0.45);
+    }
+
+    .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0.875rem;
+        border-bottom: 1px solid var(--term-border);
+        background: var(--term-bar);
+        color: var(--term-muted);
+        font-size: 12px;
+    }
+
+    .term-dots {
+        display: flex;
+        gap: 6px;
+    }
+
+    .term-dots span {
+        width: 10px;
+        height: 10px;
+        border-radius: 9999px;
+        background: #ff5f57;
+    }
+
+    .term-dots span:nth-child(2) {
+        background: #febc2e;
+    }
+
+    .term-dots span:nth-child(3) {
+        background: #28c840;
+    }
+
+    .term-title {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .term-body {
+        padding: 0.875rem 1rem;
+        line-height: 1.6;
+    }
+
+    .term-line {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .term-prompt {
+        flex-shrink: 0;
+        color: var(--term-prompt);
+        font-weight: 600;
+        white-space: nowrap;
+        user-select: none;
+    }
+
+    .term-field {
+        flex: 1;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--term-text);
+        font: inherit;
+        line-height: inherit;
+        caret-color: var(--term-prompt);
+        caret-shape: block;
+        outline: none;
+    }
+
+    .term-field::placeholder {
+        color: var(--term-placeholder);
+    }
+
+    /* Multi-line answers: a `$` per line in the gutter, scrolled together with the text. Lines do not wrap,
+       so every gutter line stays next to its line. */
+    .term-multiline {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .term-gutter {
+        flex-shrink: 0;
+        overflow: hidden;
+        color: var(--term-prompt);
+        font-weight: 600;
+        white-space: pre;
+        user-select: none;
+    }
+
+    textarea.term-field {
+        min-height: 13rem;
+        resize: vertical;
+        overflow-x: auto;
+        white-space: pre;
+    }
+
+    .term-output {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .term-muted {
+        color: var(--term-muted);
+    }
+
+    .term-ok {
+        color: #34d399;
+    }
+
+    .term-bad {
+        color: #f87171;
+    }
+
+    .term-skip {
+        color: #fbbf24;
     }
 
     .badge {
@@ -91,7 +387,7 @@
 
     .input {
         @apply w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 placeholder-zinc-600
-            focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 focus:outline-none;
+            focus:border-accent-500 focus:ring-2 focus:ring-accent-500/30 focus:outline-none;
     }
 
     .terminal {
@@ -102,11 +398,31 @@
     .prose-dojo {
         @apply prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-headings:font-semibold
             prose-h1:text-3xl prose-h2:mt-12 prose-h2:border-b prose-h2:border-zinc-800 prose-h2:pb-2
-            prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:underline
+            prose-a:text-accent-400 prose-a:no-underline hover:prose-a:underline
             prose-code:rounded prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:font-normal
-            prose-code:text-emerald-300 prose-code:before:content-none prose-code:after:content-none
+            prose-code:text-accent-300 prose-code:before:content-none prose-code:after:content-none
             prose-pre:border prose-pre:border-zinc-800 prose-pre:bg-black/60
             prose-th:text-left prose-table:text-sm;
+    }
+
+    /* Typography colours follow the zinc scale, so the material switches with the theme. */
+    .prose-dojo {
+        --tw-prose-invert-body: var(--color-zinc-300);
+        --tw-prose-invert-headings: var(--color-zinc-100);
+        --tw-prose-invert-lead: var(--color-zinc-400);
+        --tw-prose-invert-links: var(--color-accent-400);
+        --tw-prose-invert-bold: var(--color-zinc-100);
+        --tw-prose-invert-counters: var(--color-zinc-400);
+        --tw-prose-invert-bullets: var(--color-zinc-600);
+        --tw-prose-invert-hr: var(--color-zinc-800);
+        --tw-prose-invert-quotes: var(--color-zinc-100);
+        --tw-prose-invert-quote-borders: var(--color-zinc-700);
+        --tw-prose-invert-captions: var(--color-zinc-400);
+        --tw-prose-invert-kbd: var(--color-zinc-100);
+        --tw-prose-invert-code: var(--color-zinc-100);
+        --tw-prose-invert-pre-code: var(--color-zinc-300);
+        --tw-prose-invert-th-borders: var(--color-zinc-700);
+        --tw-prose-invert-td-borders: var(--color-zinc-800);
     }
 
     .prose-dojo pre code {
@@ -175,7 +491,41 @@
     }
 }
 
-/* highlight.js — compact dark palette */
+@property --ai-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes ai-spin {
+    to {
+        --ai-angle: 360deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn-ai:hover::before,
+    .btn-ai:hover::after,
+    .btn-ai:focus-visible::before,
+    .btn-ai:focus-visible::after {
+        animation: none;
+    }
+}
+
+/* The light theme's modal backdrop: a soft dim instead of a white veil (utilities would win inside a layer). */
+:root[data-theme='light'] .modal::backdrop {
+    background-color: rgb(38 30 70 / 0.35);
+}
+
+:root[data-theme='light'] .panel {
+    background-color: #ffffff;
+}
+
+:root[data-theme='light'] .modal {
+    box-shadow: 0 25px 50px -12px rgb(38 30 70 / 0.25);
+}
+
+/* highlight.js — compact palette; the light theme darkens these shades through the palette above. */
 .hljs-comment,
 .hljs-quote {
     @apply text-zinc-500 italic;

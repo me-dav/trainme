@@ -23,6 +23,11 @@ class GenerateModuleFromDocument implements ShouldQueue
     public int $tries = 1;
 
     /**
+     * The import is gone when its board was deleted before the job ran.
+     */
+    public bool $deleteWhenMissingModels = true;
+
+    /**
      * Seconds the job may run: every attempt can take up to the HTTP timeout. The queue's
      * `retry_after` must be longer than this, or a second worker picks the job up mid-run.
      */

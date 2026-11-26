@@ -23,7 +23,7 @@
         <div class="flex gap-2">
             <button type="button" class="btn btn-ghost" data-dialog-open="board-edit">Edit board</button>
             @if ($aiEnabled)
-                <button type="button" class="btn btn-ghost" data-dialog-open="import-ai">✦ Impor dari PDF/Word</button>
+                <button type="button" class="btn btn-ghost btn-ai" data-dialog-open="import-ai">✦ Impor dari PDF/Word</button>
             @endif
             <button type="button" class="btn btn-primary" data-dialog-open="import-module">+ Impor modul</button>
         </div>
@@ -31,11 +31,11 @@
 
     @if ($board->modules->isEmpty())
         <div class="card p-10 text-center">
-            <p class="font-mono text-emerald-400">$ ls ~/{{ $board->slug }}/</p>
+            <p class="font-mono text-accent-400">$ ls ~/{{ $board->slug }}/</p>
             <p class="mt-2 text-zinc-400">Board ini belum punya modul. Unduh template, buat modul dengan AI, lalu unggah di sini.</p>
             <div class="mt-6 flex flex-wrap justify-center gap-2">
                 @if ($aiEnabled)
-                    <button type="button" class="btn btn-ghost" data-dialog-open="import-ai">✦ Impor dari PDF/Word</button>
+                    <button type="button" class="btn btn-ghost btn-ai" data-dialog-open="import-ai">✦ Impor dari PDF/Word</button>
                 @endif
                 <button type="button" class="btn btn-primary" data-dialog-open="import-module">+ Impor modul</button>
             </div>
@@ -47,7 +47,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <p class="font-mono text-xs text-zinc-500">{{ str_pad((string) $module->position, 2, '0', STR_PAD_LEFT) }} · v{{ $module->version }}</p>
-                            <h2 class="mt-1 font-semibold group-hover:text-emerald-300">{{ $module->title }}</h2>
+                            <h2 class="mt-1 font-semibold group-hover:text-accent-300">{{ $module->title }}</h2>
                         </div>
                         <div class="flex shrink-0 flex-col items-end gap-1">
                             @if (in_array($module->id, $activeModuleIds, true))
@@ -108,7 +108,7 @@
                 <div class="min-w-0 flex-1">
                     <p class="font-medium">Unduh template</p>
                     <p class="mt-0.5 text-sm text-zinc-400">
-                        File <code class="font-mono text-emerald-300">.md</code> (Markdown + frontmatter YAML) berisi kerangka modul
+                        File <code class="font-mono text-accent-300">.md</code> (Markdown + frontmatter YAML) berisi kerangka modul
                         dan contoh satu soal untuk tiap tipe, lengkap dengan aturannya.
                     </p>
                     <a href="{{ route('boards.template', $board) }}" class="btn btn-ghost mt-3">
@@ -124,12 +124,12 @@
                     <p class="font-medium">Generate dengan AI</p>
                     <p class="mt-0.5 text-sm text-zinc-400">
                         Buka Claude atau AI lain, lampirkan template tadi, tempel prompt di bawah, lalu ganti
-                        <code class="font-mono text-emerald-300">[TULIS TOPIKNYA DI SINI]</code>. Simpan hasilnya sebagai file <code class="font-mono">.md</code>.
+                        <code class="font-mono text-accent-300">[TULIS TOPIKNYA DI SINI]</code>. Simpan hasilnya sebagai file <code class="font-mono">.md</code>.
                     </p>
                     <div class="mt-3 overflow-hidden rounded-lg border border-zinc-800">
                         <div class="flex items-center justify-between border-b border-zinc-800 bg-zinc-950 px-3 py-1.5">
                             <span class="font-mono text-xs text-zinc-500">prompt</span>
-                            <button type="button" class="text-xs text-emerald-400 hover:text-emerald-300" data-copy="ai-prompt">Salin prompt</button>
+                            <button type="button" class="text-xs text-accent-400 hover:text-accent-300" data-copy="ai-prompt">Salin prompt</button>
                         </div>
                         <textarea id="ai-prompt" readonly rows="8" spellcheck="false"
                                   class="block w-full resize-y bg-black/60 px-3 py-2 font-mono text-xs leading-relaxed text-zinc-300 focus:outline-none">@include('boards.partials.ai-prompt')</textarea>
@@ -209,7 +209,7 @@
         </x-modal>
     @endif
 
-    <x-modal id="board-edit" title="Edit board" :open="$errors->boardEdit->any()">
+    <x-modal id="board-edit" title="Edit board" :open="$errors->boardEdit->any() || $errors->boardDelete->any()">
         <form method="POST" action="{{ route('boards.update', $board) }}" class="space-y-4">
             @csrf
             @method('PATCH')
@@ -245,7 +245,25 @@
                     <button type="submit" class="text-sm text-red-400 hover:text-red-300">Hapus board</button>
                 </form>
             @else
-                <p class="text-xs text-zinc-500">Board hanya bisa dihapus kalau sudah tidak berisi modul.</p>
+                <details @if ($errors->boardDelete->any()) open @endif>
+                    <summary class="cursor-pointer text-sm text-red-400 hover:text-red-300">Hapus board…</summary>
+                    <form method="POST" action="{{ route('boards.destroy', $board) }}" class="mt-3 space-y-3 rounded-lg border border-red-500/40 bg-red-500/10 p-4">
+                        @csrf
+                        @method('DELETE')
+                        <p class="text-sm text-red-200">
+                            Board ini dan <strong>{{ $board->modules->count() }} modul</strong> di dalamnya akan dihapus permanen,
+                            termasuk semua soal dan riwayat tes. Tindakan ini tidak bisa dibatalkan.
+                        </p>
+                        <div>
+                            <label for="delete-confirm" class="label">Ketik <code class="font-mono text-red-300">{{ $board->slug }}</code> untuk konfirmasi</label>
+                            <input id="delete-confirm" name="confirm" type="text" autocomplete="off" spellcheck="false" required class="input font-mono">
+                            @error('confirm', 'boardDelete')
+                                <p class="mt-1 text-sm text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <button type="submit" class="btn btn-danger">Hapus board dan semua modulnya</button>
+                    </form>
+                </details>
             @endif
         </div>
     </x-modal>

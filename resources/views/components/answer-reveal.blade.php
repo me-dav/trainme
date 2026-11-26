@@ -19,7 +19,7 @@
             </p>
             <div class="space-y-1">
                 @foreach ($question->acceptedAnswers() as $accepted)
-                    <pre class="terminal py-2">@if ($question->type === QuestionType::Command)<span class="select-none text-emerald-500">$ </span>@endif{{ $accepted }}</pre>
+                    <pre class="terminal py-2">@if ($question->type === QuestionType::Command)<span class="select-none text-accent-500">$ </span>@endif{{ $accepted }}</pre>
                 @endforeach
             </div>
             @if (! empty($question->spec['patterns']) || ($question->spec['flags_any_order'] ?? false))
@@ -38,7 +38,7 @@
     @if ($question->source_url)
         <p class="text-xs">
             <span class="text-zinc-500">Sumber:</span>
-            <a href="{{ $question->source_url }}" target="_blank" rel="noopener noreferrer" class="break-all text-emerald-400 hover:underline">{{ $question->source_url }}</a>
+            <a href="{{ $question->source_url }}" target="_blank" rel="noopener noreferrer" class="break-all text-accent-400 hover:underline">{{ $question->source_url }}</a>
         </p>
     @endif
 </div>

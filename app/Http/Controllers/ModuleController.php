@@ -28,6 +28,7 @@ class ModuleController extends Controller
             'module' => $module,
             'document' => $markdown->document($module->body),
             'statuses' => $this->quiz->tierStatuses($module, $request->user()),
+            'attemptCount' => $module->attempts()->count(),
         ]);
     }
 
@@ -61,6 +62,18 @@ class ModuleController extends Controller
         return redirect()->route('modules.show', $module)->with('status', $module->isVerified()
             ? 'Modul ditandai terverifikasi.'
             : 'Modul dikembalikan ke draft.');
+    }
+
+    /**
+     * Deletes the module with its questions and test history (the database cascades).
+     */
+    public function destroy(Module $module): RedirectResponse
+    {
+        $board = $module->course;
+
+        $module->delete();
+
+        return redirect()->route('boards.show', $board)->with('status', "Modul \"{$module->title}\" dihapus.");
     }
 
     private function backToTest(Attempt $attempt): RedirectResponse

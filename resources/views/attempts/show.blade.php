@@ -4,6 +4,7 @@
     @php
         $total = $attempt->questionCount();
         $number = $attempt->current_index + 1;
+        $shellPrompt = auth()->user()->shellName().'@trainme:~$';
     @endphp
 
     <div class="mb-6">
@@ -15,7 +16,7 @@
             <span class="shrink-0 font-mono text-zinc-400">{{ $attempt->tier->label() }} · {{ $number }}/{{ $total }}</span>
         </div>
         <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800" role="progressbar" aria-valuemin="0" aria-valuemax="{{ $total }}" aria-valuenow="{{ $attempt->current_index }}">
-            <div class="h-full bg-emerald-500 transition-all" style="width: {{ $total > 0 ? round(($attempt->current_index + ($answer ? 1 : 0)) / $total * 100) : 0 }}%"></div>
+            <div class="h-full bg-accent-500 transition-all" style="width: {{ $total > 0 ? round(($attempt->current_index + ($answer ? 1 : 0)) / $total * 100) : 0 }}%"></div>
         </div>
     </div>
 
@@ -35,25 +36,27 @@
             @if ($answer === null)
                 <form method="POST" action="{{ route('attempts.answer', $attempt) }}" class="mt-6">
                     @csrf
-                    @if ($question->type === QuestionType::Command)
-                        <label for="answer" class="sr-only">Perintah</label>
-                        <div class="flex items-center rounded-lg border border-zinc-700 bg-black/60 px-3 font-mono focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/30">
-                            <span class="select-none text-emerald-500">$</span>
-                            <input id="answer" name="answer" type="text" value="{{ old('answer') }}" required autofocus
-                                   autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-                                   class="w-full bg-transparent px-2 py-3 text-sm text-zinc-100 focus:outline-none"
-                                   placeholder="ketik perintahnya…">
-                        </div>
-                    @elseif ($question->type === QuestionType::Text)
-                        <label for="answer" class="sr-only">Jawaban</label>
-                        <input id="answer" name="answer" type="text" value="{{ old('answer') }}" required autofocus
-                               autocomplete="off" spellcheck="false" class="input font-mono" placeholder="jawaban singkat…">
+                    @if ($question->type === QuestionType::Scenario)
+                        <x-terminal hint="Ctrl+Enter untuk kirim">
+                            <p class="term-muted mb-2"># Tulis perintah/langkahmu, satu per baris. Komentar # boleh.</p>
+                            <label for="answer" class="sr-only">Perintah dan langkah, satu per baris</label>
+                            <div class="term-multiline">
+                                <div class="term-gutter" data-terminal-gutter aria-hidden="true">$</div>
+                                <textarea id="answer" name="answer" rows="9" required autofocus data-submit-shortcut data-terminal-lines
+                                          wrap="off" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                                          class="term-field" placeholder="# diagnosis&#10;...&#10;# perbaikan&#10;...">{{ old('answer') }}</textarea>
+                            </div>
+                        </x-terminal>
                     @else
-                        <label for="answer" class="mb-2 block text-sm text-zinc-400">Tulis perintah/langkahmu, satu per baris.</label>
-                        <textarea id="answer" name="answer" rows="9" required autofocus data-submit-shortcut
-                                  autocomplete="off" autocapitalize="off" spellcheck="false"
-                                  class="input font-mono text-sm leading-relaxed" placeholder="# diagnosis&#10;...&#10;# perbaikan&#10;...">{{ old('answer') }}</textarea>
-                        <p class="mt-1 text-xs text-zinc-500">Ctrl+Enter untuk kirim. Komentar <code>#</code> boleh.</p>
+                        <x-terminal hint="Enter untuk kirim">
+                            <label for="answer" class="term-line">
+                                <span class="term-prompt">{{ $question->type === QuestionType::Command ? $shellPrompt : 'jawaban>' }}</span>
+                                <span class="sr-only">{{ $question->type === QuestionType::Command ? 'Perintah' : 'Jawaban' }}</span>
+                                <input id="answer" name="answer" type="text" value="{{ old('answer') }}" required autofocus
+                                       autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                                       class="term-field" placeholder="{{ $question->type === QuestionType::Command ? 'ketik perintahnya…' : 'jawaban singkat…' }}">
+                            </label>
+                        </x-terminal>
                     @endif
 
                     @error('answer')
@@ -72,24 +75,30 @@
                 @php
                     $skipped = trim($answer->answer) === '';
                 @endphp
-                <div @class([
-                    'mt-6 rounded-lg border px-4 py-3',
-                    'border-emerald-500/40 bg-emerald-500/10' => $answer->is_correct,
-                    'border-red-500/40 bg-red-500/10' => ! $answer->is_correct,
-                ]) role="status">
-                    <p @class(['font-semibold', 'text-emerald-300' => $answer->is_correct, 'text-red-300' => ! $answer->is_correct])>
+                {{-- The answer as it would look in the terminal: the input echoed, then the checker's verdict. --}}
+                <x-terminal class="mt-6" role="status">
+                    @if ($skipped)
+                        <div class="term-line"><span class="term-prompt">{{ $shellPrompt }}</span><span class="term-muted">^C</span></div>
+                    @elseif ($question->type === QuestionType::Scenario)
+                        @foreach (preg_split('/\R/', rtrim($answer->answer)) as $line)
+                            <div class="term-line"><span class="term-prompt">$</span><span class="term-output">{{ $line }}</span></div>
+                        @endforeach
+                    @else
+                        <div class="term-line">
+                            <span class="term-prompt">{{ $question->type === QuestionType::Command ? $shellPrompt : 'jawaban>' }}</span>
+                            <span class="term-output">{{ $answer->answer }}</span>
+                        </div>
+                    @endif
+                    <p @class(['mt-2 font-semibold', 'term-ok' => $answer->is_correct, 'term-skip' => $skipped, 'term-bad' => ! $answer->is_correct && ! $skipped])>
                         @if ($answer->is_correct)
-                            Benar
+                            ✓ Benar
                         @elseif ($skipped)
-                            Dilewati
+                            ↷ Dilewati
                         @else
-                            Belum tepat
+                            ✗ Belum tepat
                         @endif
                     </p>
-                    @unless ($skipped)
-                        <pre class="mt-2 font-mono text-sm whitespace-pre-wrap text-zinc-300">{{ $answer->answer }}</pre>
-                    @endunless
-                </div>
+                </x-terminal>
 
                 <div class="mt-6 space-y-6">
                     <x-checklist-result :feedback="$answer->feedback ?? []" />

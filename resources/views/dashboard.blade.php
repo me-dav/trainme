@@ -19,7 +19,7 @@
                         <span>{{ $attempt->module->title }} <span class="text-zinc-500">· {{ $attempt->tier->label() }}</span></span>
                         <span class="flex items-center gap-3">
                             <span class="font-mono text-zinc-500">{{ $attempt->current_index }}/{{ $attempt->questionCount() }}</span>
-                            <span class="text-emerald-400">Lanjutkan →</span>
+                            <span class="text-accent-400">Lanjutkan →</span>
                         </span>
                     </a>
                 @endforeach
@@ -29,7 +29,7 @@
 
     @if ($boards->isEmpty())
         <div class="card p-10 text-center">
-            <p class="font-mono text-emerald-400">$ ls boards/</p>
+            <p class="font-mono text-accent-400">$ ls boards/</p>
             <p class="mt-2 text-zinc-400">Belum ada board. Buat satu untuk tiap topik, lalu impor modul ke dalamnya.</p>
             <button type="button" class="btn btn-primary mt-6" data-dialog-open="board-create">+ Buat board</button>
         </div>
@@ -42,7 +42,7 @@
                 @endphp
                 <a href="{{ route('boards.show', $board) }}" class="card group flex flex-col p-5 transition hover:border-zinc-600">
                     <p class="font-mono text-xs text-zinc-500">~/{{ $board->slug }}</p>
-                    <h2 class="mt-1 text-lg font-semibold group-hover:text-emerald-300">{{ $board->title }}</h2>
+                    <h2 class="mt-1 text-lg font-semibold group-hover:text-accent-300">{{ $board->title }}</h2>
                     @if ($board->description)
                         <p class="mt-1 line-clamp-2 text-sm text-zinc-400">{{ $board->description }}</p>
                     @endif
@@ -53,7 +53,7 @@
                             <span class="font-mono">{{ $passed }}/{{ $total }} tier lulus</span>
                         </div>
                         <div class="h-1.5 overflow-hidden rounded-full bg-zinc-800">
-                            <div class="h-full bg-emerald-500" style="width: {{ $percent }}%"></div>
+                            <div class="h-full bg-accent-500" style="width: {{ $percent }}%"></div>
                         </div>
                     </div>
                 </a>

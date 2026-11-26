@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/modules/{module}', [ModuleController::class, 'show'])->name('modules.show');
     Route::get('/modules/{module}/bank', [ModuleController::class, 'bank'])->name('modules.bank');
     Route::patch('/modules/{module}/status', [ModuleController::class, 'updateStatus'])->name('modules.status');
+    Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])->name('modules.destroy');
     Route::post('/modules/{module}/tiers/{tier}/attempts', [AttemptController::class, 'store'])->name('attempts.store');
 
     Route::get('/attempts/{attempt}', [AttemptController::class, 'show'])->name('attempts.show');
